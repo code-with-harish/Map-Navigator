@@ -1,6 +1,6 @@
 # Map Navigator
 
-An intelligent navigation platform for central Bengaluru: live traffic simulation, roadside sensor fusion, incidents and road closures, weather, and predictive routing with ETA confidence — rendered on a 3D MapLibre map.
+An intelligent navigation platform for central Bengaluru: live traffic simulation, roadside sensor fusion, incidents and road closures, weather, and predictive routing with ETA confidence rendered on a 3D MapLibre map.
 
 Pick any two points and get the fastest route for **right now**, or slide departure forward and get the route for **45 minutes from now**, computed against online-learned traffic forecasts instead of the current snapshot. Ask for the **shortest** or most **fuel-efficient** route instead, compare up to three alternatives, and report an accident or closure and watch routing react.
 
