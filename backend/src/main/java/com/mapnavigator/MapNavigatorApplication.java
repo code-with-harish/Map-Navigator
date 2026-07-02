@@ -2,25 +2,36 @@ package com.mapnavigator;
 
 import java.time.LocalTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import com.mapnavigator.core.AStarNavigator;
+import com.mapnavigator.core.Graph;
+import com.mapnavigator.core.RoadNetwork;
+import com.mapnavigator.traffic.SensorNetwork;
+import com.mapnavigator.traffic.TrafficPredictor;
+import com.mapnavigator.traffic.TrafficService;
+import com.mapnavigator.traffic.WeatherService;
+
 /**
- * Map Navigator - Spring Boot entry point.
+ * Map Navigator entry point.
  *
- * Wires the framework-free core (graph, A*, traffic, weather, IoT, ML) into
- * Spring beans, schedules the live simulation ticks, and opens CORS so the
- * static frontend (frontend/index.html) can call the API from anywhere.
+ * Wires the framework-free core (graph, A*, traffic, weather, sensors,
+ * prediction) into Spring beans; the live tick runs in
+ * {@link com.mapnavigator.web.SimulationHeartbeat}.
  */
 @SpringBootApplication
 @EnableScheduling
 public class MapNavigatorApplication {
+
+    private static final Logger log = LoggerFactory.getLogger(MapNavigatorApplication.class);
 
     public static void main(String[] args) {
         SpringApplication.run(MapNavigatorApplication.class, args);
@@ -31,17 +42,22 @@ public class MapNavigatorApplication {
                        @Value("${db.url:jdbc:postgresql://localhost:5432/mapnavigator}") String url,
                        @Value("${db.user:postgres}") String user,
                        @Value("${db.password:postgres}") String password) throws Exception {
-        return dbEnabled ? RoadNetwork.fromDatabase(url, user, password) : RoadNetwork.embedded();
+        Graph graph = dbEnabled ? RoadNetwork.fromDatabase(url, user, password)
+                                : RoadNetwork.embedded();
+        log.info("Road network loaded from {}: {} nodes, {} directed edges",
+                dbEnabled ? "PostgreSQL" : "embedded dataset",
+                graph.nodes().size(), graph.edges().size());
+        return graph;
     }
 
     @Bean
-    public MLModel mlModel() {
-        return new MLModel();
+    public TrafficPredictor trafficPredictor() {
+        return new TrafficPredictor();
     }
 
     @Bean
-    public IoTIntegration iotIntegration(Graph graph) {
-        return new IoTIntegration(graph, System.nanoTime());
+    public SensorNetwork sensorNetwork(Graph graph) {
+        return new SensorNetwork(graph, System.nanoTime());
     }
 
     @Bean
@@ -50,11 +66,13 @@ public class MapNavigatorApplication {
     }
 
     @Bean
-    public TrafficDataService trafficDataService(Graph graph, IoTIntegration iot, MLModel ml) {
-        TrafficDataService svc = new TrafficDataService(graph, iot, ml, System.nanoTime());
-        svc.warmUp(3);              // replay 3 simulated days so predictions start sensible
-        svc.tick(LocalTime.now());  // and take a first live snapshot immediately
-        return svc;
+    public TrafficService trafficService(Graph graph, SensorNetwork sensors,
+                                         TrafficPredictor predictor,
+                                         @Value("${sim.warmup-days:3}") int warmupDays) {
+        TrafficService service = new TrafficService(graph, sensors, predictor, System.nanoTime());
+        service.warmUp(warmupDays);       // replay simulated days so predictions start sensible
+        service.tick(LocalTime.now());    // and take a first live snapshot immediately
+        return service;
     }
 
     @Bean
@@ -62,24 +80,16 @@ public class MapNavigatorApplication {
         return new AStarNavigator(graph);
     }
 
-    /** Live simulation heartbeat. */
     @Bean
-    public Object scheduler(TrafficDataService traffic, WeatherService weather) {
-        return new Object() {
-            @Scheduled(fixedRateString = "${sim.tick-ms:5000}")
-            public void tick() {
-                weather.tick();
-                traffic.tick(LocalTime.now());
-            }
-        };
-    }
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
+    public WebMvcConfigurer corsConfigurer(
+            @Value("${cors.allowed-origins:*}") String[] allowedOrigins) {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/**").allowedOrigins("*").allowedMethods("*");
+                if (allowedOrigins.length == 0) return; // same-origin deployments need no CORS
+                registry.addMapping("/api/**")
+                        .allowedOrigins(allowedOrigins)
+                        .allowedMethods("GET", "POST", "DELETE");
             }
         };
     }
