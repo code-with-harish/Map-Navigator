@@ -1,76 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Map Navigator — Live traffic routing</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Map Navigator — live traffic routing for Bengaluru</title>
+<meta name="description" content="Predictive navigation over central Bengaluru: live traffic, incidents, weather and route profiles on a 3D map.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div id="map" aria-label="City map"></div>
+<div id="map" aria-label="3D city map of central Bengaluru"></div>
+<div id="weatherFx" aria-hidden="true"></div>
 
 <aside class="panel" id="panel">
   <header class="panel-head">
-    <h1>Map Navigator</h1>
-    <span class="mode-chip" id="modeChip" title="Backend connection status">connecting…</span>
+    <div class="brand">
+      <h1>Map Navigator</h1>
+      <span class="sub">Bengaluru · live traffic</span>
+    </div>
+    <div class="head-actions">
+      <span class="mode-chip" id="modeChip" title="Backend connection status">connecting…</span>
+      <button class="icon-btn" id="themeBtn" title="Switch theme" aria-label="Switch between dark and light theme">◐</button>
+    </div>
   </header>
 
-  <section class="panel-section">
-    <div class="field-row">
-      <label class="dot dot-start" for="fromSel" title="Start"></label>
-      <select id="fromSel"><option value="">Choose start — or click the map</option></select>
-    </div>
-    <div class="field-row">
-      <label class="dot dot-end" for="toSel" title="Destination"></label>
-      <select id="toSel"><option value="">Choose destination</option></select>
-    </div>
+  <div class="panel-body">
+    <section class="panel-section">
+      <div class="od-grid">
+        <span class="dot dot-start" aria-hidden="true"></span>
+        <select id="fromSel" aria-label="Start"><option value="">Start — or tap a point on the map</option></select>
+        <button class="icon-btn swap" id="swapBtn" title="Swap start and destination" aria-label="Swap start and destination">⇅</button>
+        <span class="dot dot-end" aria-hidden="true"></span>
+        <select id="toSel" aria-label="Destination"><option value="">Destination</option></select>
+      </div>
 
-    <div class="depart-row">
-      <label for="departIn">Leave <output id="departLabel">now</output></label>
-      <input type="range" id="departIn" min="0" max="120" step="15" value="0"
-             aria-label="Departure time in minutes from now">
-    </div>
+      <div class="profile-row" role="radiogroup" aria-label="Route profile">
+        <button class="profile-btn active" data-profile="fastest" role="radio" aria-checked="true">Fastest</button>
+        <button class="profile-btn" data-profile="shortest" role="radio" aria-checked="false">Shortest</button>
+        <button class="profile-btn" data-profile="eco" role="radio" aria-checked="false">Eco</button>
+      </div>
 
-    <div class="btn-row">
-      <button class="btn-primary" id="routeBtn">Find route</button>
-      <button class="btn-ghost" id="clearBtn">Clear</button>
-    </div>
-  </section>
+      <div class="depart-row">
+        <label for="departIn">Leave <output id="departLabel">now</output></label>
+        <input type="range" id="departIn" min="0" max="120" step="15" value="0"
+               aria-label="Departure time in minutes from now">
+      </div>
 
-  <section class="panel-section eta-card" id="etaCard" hidden>
-    <div class="eta-main">
-      <span class="eta-value" id="etaValue">—</span>
-      <span class="eta-unit">min</span>
-    </div>
-    <div class="eta-meta">
-      <span id="etaDistance">—</span>
-      <span id="etaWeather">—</span>
-      <span class="predictive-tag" id="predictiveTag" hidden>predicted</span>
-    </div>
-    <ol class="directions" id="directions"></ol>
-    <button class="btn-ghost btn-save" id="saveRouteBtn">Save to history</button>
-  </section>
+      <div class="btn-row">
+        <button class="btn-primary" id="routeBtn">Find route</button>
+        <button class="btn-ghost" id="clearBtn">Clear</button>
+      </div>
+    </section>
 
-  <section class="panel-section" id="userSection">
-    <h2>Saved places</h2>
-    <ul class="pill-list" id="placesList"><li class="empty">Nothing saved yet — find a route, then star a stop.</li></ul>
-    <h2>Recent routes</h2>
-    <ul class="history-list" id="historyList"><li class="empty">Routes you request appear here.</li></ul>
-  </section>
+    <section class="panel-section eta-card" id="etaCard" hidden>
+      <div class="eta-main">
+        <span class="eta-value" id="etaValue">—</span>
+        <span class="eta-unit">min</span>
+        <span class="eta-band" id="etaBand"></span>
+      </div>
+      <div class="eta-meta">
+        <span id="etaDistance">—</span>
+        <span class="predictive-tag" id="predictiveTag" hidden>forecast</span>
+      </div>
+      <div class="alt-list" id="altList"></div>
+      <ol class="directions" id="directions"></ol>
+      <div class="btn-row">
+        <button class="btn-ghost" id="saveRouteBtn">Save to history</button>
+        <button class="btn-ghost" id="replayBtn">Replay drive</button>
+      </div>
+    </section>
+
+    <section class="panel-section" id="incidentSection">
+      <div class="section-head">
+        <h2>Incidents</h2>
+        <button class="btn-ghost btn-small" id="reportBtn">Report</button>
+      </div>
+      <p class="hint" id="reportHint" hidden>Tap a road on the map to report an incident on it.</p>
+      <ul class="incident-list" id="incidentList"><li class="empty">No active incidents.</li></ul>
+    </section>
+
+    <section class="panel-section">
+      <h2>Saved places</h2>
+      <ul class="pill-list" id="placesList"><li class="empty">Find a route, then save the destination.</li></ul>
+      <h2>Recent routes</h2>
+      <ul class="history-list" id="historyList"><li class="empty">Routes you request appear here.</li></ul>
+    </section>
+  </div>
 
   <footer class="panel-foot">
-    <span class="legend"><i class="sw sw-free"></i>free <i class="sw sw-slow"></i>slow <i class="sw sw-heavy"></i>heavy <i class="sw sw-jam"></i>jam</span>
+    <span class="legend">
+      <i class="sw sw-free"></i>free <i class="sw sw-slow"></i>slow
+      <i class="sw sw-heavy"></i>heavy <i class="sw sw-jam"></i>jam
+    </span>
     <span id="weatherLine">—</span>
   </footer>
 </aside>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="map.js"></script>
+<dialog id="incidentDialog">
+  <form method="dialog" id="incidentForm">
+    <h3 id="incidentRoad">Report incident</h3>
+    <div class="profile-row">
+      <button type="button" class="profile-btn active" data-itype="accident">Accident</button>
+      <button type="button" class="profile-btn" data-itype="closure">Road closed</button>
+    </div>
+    <label class="dialog-row">Duration
+      <select id="incidentDuration">
+        <option value="15">15 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="60">1 hour</option>
+        <option value="240">4 hours</option>
+      </select>
+    </label>
+    <div class="btn-row">
+      <button value="report" class="btn-primary">Report</button>
+      <button value="cancel" class="btn-ghost" formnovalidate>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
