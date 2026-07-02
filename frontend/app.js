@@ -305,6 +305,7 @@ function congestionClass(c) {
 /** Re-adds every overlay; runs on first load and after each style switch. */
 function addOverlays() {
   add3dBuildings();
+  if (map.getLayer("traffic")) return; // already added for this style
   const sources = ["traffic", "traffic-closed", "route-alts", "route", "route-lead", "nodes"];
   for (const id of sources) {
     if (!map.getSource(id)) map.addSource(id, { type: "geojson", data: emptyFC() });
@@ -872,10 +873,10 @@ async function refreshAll() {
 }
 
 /* ------------------------------------------------------------------ wiring */
-map.on("load", addOverlays);
 map.on("style.load", addOverlays);
 
 map.on("click", ev => {
+  if (!map.getLayer("nodes")) return;
   if (state.reporting) {
     const pad = 8;
     const features = map.queryRenderedFeatures(
@@ -904,6 +905,7 @@ map.on("click", ev => {
 });
 
 map.on("mousemove", ev => {
+  if (!map.getLayer("nodes")) return;
   const hits = map.queryRenderedFeatures(
     [[ev.point.x - 6, ev.point.y - 6], [ev.point.x + 6, ev.point.y + 6]],
     { layers: ["nodes"] });
