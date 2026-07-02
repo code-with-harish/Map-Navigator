@@ -1,0 +1,35 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_ENABLED: ${DB_ENABLED:-false}
+      DB_URL: jdbc:postgresql://postgres:5432/mapnavigator
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+    # Uncomment to call the API directly instead of through the frontend proxy:
+    # ports:
+    #   - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  # Optional: run with `docker compose --profile postgres up` and DB_ENABLED=true
+  # to load the road network from PostgreSQL instead of the embedded dataset.
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: mapnavigator
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - ./database/PostgresDBSetup.sql:/docker-entrypoint-initdb.d/setup.sql:ro
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
