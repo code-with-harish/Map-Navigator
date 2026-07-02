@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map Navigator — Live traffic routing</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="map" aria-label="City map"></div>
+
+<aside class="panel" id="panel">
+  <header class="panel-head">
+    <h1>Map Navigator</h1>
+    <span class="mode-chip" id="modeChip" title="Backend connection status">connecting…</span>
+  </header>
+
+  <section class="panel-section">
+    <div class="field-row">
+      <label class="dot dot-start" for="fromSel" title="Start"></label>
+      <select id="fromSel"><option value="">Choose start — or click the map</option></select>
+    </div>
+    <div class="field-row">
+      <label class="dot dot-end" for="toSel" title="Destination"></label>
+      <select id="toSel"><option value="">Choose destination</option></select>
+    </div>
+
+    <div class="depart-row">
+      <label for="departIn">Leave <output id="departLabel">now</output></label>
+      <input type="range" id="departIn" min="0" max="120" step="15" value="0"
+             aria-label="Departure time in minutes from now">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="routeBtn">Find route</button>
+      <button class="btn-ghost" id="clearBtn">Clear</button>
+    </div>
+  </section>
+
+  <section class="panel-section eta-card" id="etaCard" hidden>
+    <div class="eta-main">
+      <span class="eta-value" id="etaValue">—</span>
+      <span class="eta-unit">min</span>
+    </div>
+    <div class="eta-meta">
+      <span id="etaDistance">—</span>
+      <span id="etaWeather">—</span>
+      <span class="predictive-tag" id="predictiveTag" hidden>predicted</span>
+    </div>
+    <ol class="directions" id="directions"></ol>
+    <button class="btn-ghost btn-save" id="saveRouteBtn">Save to history</button>
+  </section>
+
+  <section class="panel-section" id="userSection">
+    <h2>Saved places</h2>
+    <ul class="pill-list" id="placesList"><li class="empty">Nothing saved yet — find a route, then star a stop.</li></ul>
+    <h2>Recent routes</h2>
+    <ul class="history-list" id="historyList"><li class="empty">Routes you request appear here.</li></ul>
+  </section>
+
+  <footer class="panel-foot">
+    <span class="legend"><i class="sw sw-free"></i>free <i class="sw sw-slow"></i>slow <i class="sw sw-heavy"></i>heavy <i class="sw sw-jam"></i>jam</span>
+    <span id="weatherLine">—</span>
+  </footer>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="map.js"></script>
+</body>
+</html>
