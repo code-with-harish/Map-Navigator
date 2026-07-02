@@ -1,4 +1,4 @@
-package com.mapnavigator;
+package com.mapnavigator.traffic;
 
 import java.util.Random;
 

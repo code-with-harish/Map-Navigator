@@ -1,4 +1,4 @@
-package com.mapnavigator;
+package com.mapnavigator.core;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
