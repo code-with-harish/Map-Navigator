@@ -873,6 +873,7 @@ async function refreshAll() {
 }
 
 /* ------------------------------------------------------------------ wiring */
+map.on("load", addOverlays);
 map.on("style.load", addOverlays);
 
 map.on("click", ev => {
