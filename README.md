@@ -8,10 +8,10 @@ Pick any two points and get the fastest route for **right now**, or slide depart
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [frontend — MapLibre GL, no build step]
+    subgraph Frontend [frontend MapLibre GL, no build step]
         UI[3D map UI] --> DEMO[demo-mode router\nsame A*, in-browser]
     end
-    subgraph Backend [backend — Spring Boot 3, Java 21]
+    subgraph Backend [backend Spring Boot 3, Java 21]
         API[REST API\ncontrollers + DTOs] --> NAV[AStarNavigator\nprofiles · alternatives]
         API --> TS[TrafficService\nincidents · closures]
         TS --> SN[SensorNetwork]
@@ -24,7 +24,7 @@ flowchart LR
     PG[(PostgreSQL\noptional)] --> RN
 ```
 
-The routing and simulation core (`com.mapnavigator.core`, `com.mapnavigator.traffic`) has **zero dependencies** — it compiles and its full test suite runs with nothing but a JDK. Spring only wires it up and exposes it (`com.mapnavigator.web`).
+The routing and simulation core (`com.mapnavigator.core`, `com.mapnavigator.traffic`) has **zero dependencies** it compiles and its full test suite runs with nothing but a JDK. Spring only wires it up and exposes it (`com.mapnavigator.web`).
 
 ```
 backend/    Java 21 · Spring Boot 3 REST API over a framework-free core
@@ -34,17 +34,17 @@ database/   PostgreSQL schema + seed data (optional network source)
 
 ## Features
 
-**Routing.** A* over a pluggable cost model: `fastest` (predicted travel time), `shortest` (distance), `eco` (a fuel proxy — consumption modelled as a parabola around an efficient cruising speed, inflated by stop-and-go traffic). Each profile carries an admissible haversine heuristic, so results are optimal for the assumed traffic; the test suite cross-checks A* against a plain Dijkstra reference over **all 552 node pairs**. Alternative routes come from the penalty method: edges of accepted routes are inflated and the search re-run, keeping candidates that are meaningfully different and not absurdly slower. Contraction hierarchies and ALT were considered and deliberately skipped — they pay off on country-scale graphs and would fight the live per-query edge weights that make this system interesting.
+**Routing.** A* over a pluggable cost model: `fastest` (predicted travel time), `shortest` (distance), `eco` (a fuel proxy consumption modelled as a parabola around an efficient cruising speed, inflated by stop-and-go traffic). Each profile carries an admissible haversine heuristic, so results are optimal for the assumed traffic; the test suite cross-checks A* against a plain Dijkstra reference over **all 552 node pairs**. Alternative routes come from the penalty method: edges of accepted routes are inflated and the search re-run, keeping candidates that are meaningfully different and not absurdly slower. Contraction hierarchies and ALT were considered and deliberately skipped they pay off on country-scale graphs and would fight the live per-query edge weights that make this system interesting.
 
 **Live traffic.** Every 5 seconds `TrafficService` recomputes congestion per road segment: time-of-day baseline (rush peaks at 8–10 and 17–20) → local drift on sensor-instrumented segments → active incidents. Roadside sensors then *measure* the resulting state, including incidents, exactly as real hardware would.
 
-**Incidents and closures.** Accidents inflate a road's congestion; closures remove it from routing until they expire. Both can be spawned by the simulation or reported through the API (and from the map UI — tap Report, then tap a road). The frontend re-routes automatically if a closure lands on the active route.
+**Incidents and closures.** Accidents inflate a road's congestion; closures remove it from routing until they expire. Both can be spawned by the simulation or reported through the API (and from the map UI tap Report, then tap a road). The frontend re-routes automatically if a closure lands on the active route.
 
-**Prediction.** `TrafficPredictor` learns online from every observation: a 24-bucket hourly profile per segment (slow EMA — the seasonal pattern), a fast-adapting short-term deviation with a 30-minute forecast half-life, and the variance of its own errors. Forecasts interpolate between hourly buckets so they vary smoothly by the minute. It correctly predicts both "the jam on MG Road will have cleared in an hour" and "but you'll hit Silk Board during evening rush." Heavier ML was evaluated and rejected: with one observation stream per edge, a seasonal exponential smoother matches anything a gradient-boosted or sequence model could learn here, at microsecond inference and zero dependencies.
+**Prediction.** `TrafficPredictor` learns online from every observation: a 24-bucket hourly profile per segment (slow EMA the seasonal pattern), a fast-adapting short-term deviation with a 30-minute forecast half-life, and the variance of its own errors. Forecasts interpolate between hourly buckets so they vary smoothly by the minute. It correctly predicts both "the jam on MG Road will have cleared in an hour" and "but you'll hit Silk Board during evening rush." Heavier ML was evaluated and rejected: with one observation stream per edge, a seasonal exponential smoother matches anything a gradient-boosted or sequence model could learn here, at microsecond inference and zero dependencies.
 
 **ETA confidence.** Each route's ETA ships with an ~80% band ("24 min ± 3"): every segment contributes its sensitivity to congestion times the predictor's forecast spread at the moment that segment would be driven, root-sum-squared and capped at ±35% of the ETA.
 
-**Weather.** A sticky Markov chain over conditions with a network-wide speed factor — heavy rain slows every road by 30%, which changes ETAs and sometimes the chosen route. Swapping in a real provider (Open-Meteo, OpenWeatherMap) only requires replacing its `tick()`.
+**Weather.** A sticky Markov chain over conditions with a network-wide speed factor heavy rain slows every road by 30%, which changes ETAs and sometimes the chosen route. Swapping in a real provider (Open-Meteo, OpenWeatherMap) only requires replacing its `tick()`.
 
 **Frontend.** MapLibre GL with Carto basemaps, extruded 3D buildings, pitch and rotation, dark and light themes. The signature element is the route ribbon drawn segment-by-segment **in its congestion colour** over the 3D city, with an animated reveal and a drive-replay marker (both respect `prefers-reduced-motion`). Panel UI covers profiles, departure slider, alternatives, turn-by-turn legs, incidents, saved places and history. Without a backend it drops into **demo mode**: the identical network and an equivalent A* (profiles, alternatives, closures included) run in the browser, so `index.html` works opened standalone.
 
@@ -107,7 +107,7 @@ psql -d mapnavigator -f database/PostgresDBSetup.sql
 
 ## Tests
 
-The core suite needs only a JDK — no Maven, no network:
+The core suite needs only a JDK no Maven, no network:
 
 ```bash
 cd backend
