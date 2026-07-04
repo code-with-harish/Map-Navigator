@@ -70,7 +70,7 @@ public class MapNavigatorApplication {
                                          TrafficPredictor predictor,
                                          @Value("${sim.warmup-days:3}") int warmupDays) {
         TrafficService service = new TrafficService(graph, sensors, predictor, System.nanoTime());
-        service.warmUp(warmupDays);       // replay simulated days so predictions start sensible
+        service.warmUp(warmupDays);      // replay simulated days so predictions start sensible
         service.tick(LocalTime.now());    // and take a first live snapshot immediately
         return service;
     }
@@ -90,6 +90,7 @@ public class MapNavigatorApplication {
                 registry.addMapping("/api/**")
                         .allowedOrigins(allowedOrigins)
                         .allowedMethods("GET", "POST", "DELETE");
+                
             }
         };
     }
