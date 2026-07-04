@@ -90,5 +90,6 @@ class ApiSmokeTest {
         mvc.perform(get("/api/users/smoke/places"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].label").value("Work"));
+        
     }
 }
